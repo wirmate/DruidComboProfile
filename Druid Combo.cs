@@ -69,7 +69,8 @@ namespace SmartBotProfiles
             parameters.SpellsModifiers.AddOrUpdate(Card.Cards.GAME_005, new Modifier(150));
             parameters.SpellsModifiers.AddOrUpdate(Cards.Innervate, new Modifier(180));
             parameters.SpellsModifiers.AddOrUpdate(Cards.Swipe, new Modifier(80));
-
+            parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(60));
+			
             if (HasSimpleComboInHand(board) || (board.HasCardInHand(Cards.ForceofNature) && board.Hand.Count > 4))
             {
                 parameters.MinionsModifiers.AddOrUpdate(Cards.EmperorThaurissan, new Modifier(-150));
