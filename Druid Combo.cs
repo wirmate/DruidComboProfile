@@ -68,7 +68,7 @@ namespace SmartBotProfiles
 
             parameters.SpellsModifiers.AddOrUpdate(Card.Cards.GAME_005, new Modifier(150));
             parameters.SpellsModifiers.AddOrUpdate(Cards.Innervate, new Modifier(180));
-            parameters.SpellsModifiers.AddOrUpdate(Cards.Swipe, new Modifier(80));
+            parameters.SpellsModifiers.AddOrUpdate(Cards.Swipe, new Modifier(75));
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(60));
 			
             if (HasSimpleComboInHand(board) || (board.HasCardInHand(Cards.ForceofNature) && board.Hand.Count > 4))
@@ -81,11 +81,12 @@ namespace SmartBotProfiles
                 parameters.SpellsModifiers.AddOrUpdate(Cards.ForceofNature, new Modifier(60));
             }
 
+            parameters.GlobalAggroModifier = new Modifier(175);
 
             //If we cant put down enemy's life at topdeck lethal range
             if (HasPotentialLethalNextTurn(board))
             {
-                parameters.GlobalAggroModifier = new Modifier(200);
+                parameters.GlobalAggroModifier = new Modifier(250);
             }
 
             if (ShouldDrawCards(board)) //If we need to draw cards
@@ -229,7 +230,7 @@ namespace SmartBotProfiles
 
         private bool ShouldDrawCards(Board board)
         {
-            if (HasAncientOfLoreInHand(board)) return true;
+            if (HasAncientOfLoreInHand(board) && board.Hand.Count < 7) return true;
             if (board.Hand.Count(x => x.Type == Card.CType.MINION) < 2 && board.ManaAvailable > 2 &&
                 board.Ability.Template.Id == LifeTap)
             {
