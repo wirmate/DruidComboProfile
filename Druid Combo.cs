@@ -96,6 +96,7 @@ namespace SmartBotProfiles
                 new Modifier(HasDoubleForceOfNature(board) ? 60 : 130));
 
             //Wild growth end game
+
             if (board.MaxMana == 7 && HasSimpleComboInHand(board))
                 parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(1));
             else if (board.MaxMana >= 10)
@@ -114,6 +115,8 @@ namespace SmartBotProfiles
             //If we cant put down enemy's life at topdeck lethal range
             if (HasPotentialLethalNextTurn(board))
             {
+                Bot.Log("Detected potential lethal next turn, aggro, aggro, aggro !!!");
+
                 //Bot.Log("Detected potential lethal next turn !!!!");
                 parameters.GlobalAggroModifier = new Modifier(500);
 
@@ -142,21 +145,23 @@ namespace SmartBotProfiles
             /* ------------------------------------------------------------------------------ */
             /* ------------------------------------------------------------------------------ */
 
-
-            //Turn specific handlers
-            switch (board.TurnCount)
+            if (board.TurnCount < 5)
             {
-                case 1:
-                    HandleTurnOneSpecifics(board, ref parameters);
-                    break;
+                //Turn specific handlers
+                switch (board.ManaAvailable)
+                {
+                    case 1:
+                        HandleTurnOneSpecifics(board, ref parameters);
+                        break;
 
-                case 2:
-                    HandleTurnTwoSpecifics(board, ref parameters);
-                    break;
+                    case 2:
+                        HandleTurnTwoSpecifics(board, ref parameters);
+                        break;
 
-                case 3:
-                    HandleTurnThreeSpecifics(board, ref parameters);
-                    break;
+                    case 3:
+                        HandleTurnThreeSpecifics(board, ref parameters);
+                        break;
+                }
             }
 
             return parameters;
@@ -195,6 +200,9 @@ namespace SmartBotProfiles
 
                 if (HasWildGrowth(board) && !HasDarnassus(board) && board.HasCardInHand(Cards.ShadeofNaxxramas))
                     parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(-300));
+
+                if (board.Hand.Count(x => x.Template.Id == Cards.WildGrowth) == 2)
+                    parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(-100));
             }
         }
 
@@ -292,7 +300,6 @@ namespace SmartBotProfiles
                     GetPotentialAttackNextTurn(board) + GetPotentialAttackersCountNextTurn(board)*2 +
                     GetPlayableMinionsThisTurn(board)*2)
                 {
-                    Bot.Log("Detected potential lethal next turn, aggro, aggro, aggro !!!");
                     return true;
                 }
             }
