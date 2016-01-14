@@ -94,7 +94,9 @@ namespace SmartBotProfiles
                 new Modifier(HasDoubleForceOfNature(board) ? 60 : 30));
 
             //Wild growth end game
-            if (board.MaxMana >= 10)
+            if(board.MaxMana == 7 && HasSimpleComboInHand(board))
+                parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(1));
+            else if (board.MaxMana >= 10)
                 parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(1));
 
             /* ------------------------------------------------------------------------------ */
