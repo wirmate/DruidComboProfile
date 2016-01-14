@@ -78,6 +78,8 @@ namespace SmartBotProfiles
             //Silence specifics
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(30, Cards.TwilightDrake));
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(20, Cards.SludgeBelcher));
+            parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(1, Cards.TunnelTrogg));
+            parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(1, Cards.KnifeJuggler));
 
             //Dr.Boom
             parameters.MinionsModifiers.AddOrUpdate(Cards.DrBoom, new Modifier(-50));
