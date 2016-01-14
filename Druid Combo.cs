@@ -80,9 +80,10 @@ namespace SmartBotProfiles
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(20, Cards.SludgeBelcher));
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(1, Cards.TunnelTrogg));
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(1, Cards.KnifeJuggler));
+            parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(1, Cards.NorthshireCleric));
 
             //Dr.Boom
-            parameters.MinionsModifiers.AddOrUpdate(Cards.DrBoom, new Modifier(-50));
+            parameters.MinionsModifiers.AddOrUpdate(Cards.DrBoom, new Modifier(-100));
 
             //AzureDrake
             parameters.MinionsModifiers.AddOrUpdate(Cards.AzureDrake, new Modifier(0));
@@ -136,8 +137,8 @@ namespace SmartBotProfiles
 
             if (ShouldDrawCards(board)) //If we need to draw cards
             {
-                parameters.MinionsModifiers.AddOrUpdate(Cards.AncientofLore, new Modifier(-100));
-                parameters.GlobalDrawModifier = new Modifier(150);
+                parameters.MinionsModifiers.AddOrUpdate(Cards.AncientofLore, new Modifier(40));
+                parameters.GlobalDrawModifier = new Modifier(110);
             }
             else
             {
@@ -195,6 +196,10 @@ namespace SmartBotProfiles
 
             if (HasCoin(board))
             {
+                if (HasDarnassus(board) && !HasWildGrowth(board) && board.MinionEnemy.Count > 0 &&
+                    board.MinionEnemy.Sum(x => x.CurrentAtk) < 3)
+                    parameters.MinionsModifiers.AddOrUpdate(Cards.DarnassusAspirant, new Modifier(-300));
+
                 //We choose to coin out darnassus over wild growth
                 if (HasDarnassus(board) && (HasWildGrowth(board) || board.HasCardInHand(Cards.ShadeofNaxxramas)) &&
                     board.MinionEnemy.All(x => x.Template.Id != Cards.NorthshireCleric))
@@ -213,7 +218,7 @@ namespace SmartBotProfiles
             //Please shredder
             if (board.ManaAvailable == 2 && Hasinnervate(board) && board.HasCardInHand(Cards.PilotedShredder))
             {
-                parameters.MinionsModifiers.AddOrUpdate(Cards.PilotedShredder, new Modifier(-600));
+                parameters.MinionsModifiers.AddOrUpdate(Cards.PilotedShredder, new Modifier(-150));
                 return;
             }
 
