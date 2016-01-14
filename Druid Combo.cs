@@ -93,6 +93,7 @@ namespace SmartBotProfiles
             parameters.SpellsModifiers.AddOrUpdate(Cards.ForceofNature,
                 new Modifier(HasDoubleForceOfNature(board) ? 60 : 30));
 
+            //Wild growth end game
             if (board.MaxMana >= 10)
                 parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(1));
 
@@ -265,32 +266,14 @@ namespace SmartBotProfiles
             return board.HasCardInHand(Cards.AncientofLore);
         }
 
-        private bool ShouldDrawCards(Board board)
+        private bool HasSimpleComboInHand(Board board)
         {
-            if (HasAncientOfLoreInHand(board) && board.Hand.Count < 7) return true;
-            if (board.Hand.Count(x => x.Type == Card.CType.MINION) < 2 && board.ManaAvailable > 2 &&
-                board.Ability.Template.Id == LifeTap)
-            {
-                return true;
-            }
-
-            return false;
+            return board.HasCardInHand(Cards.ForceofNature) && board.HasCardInHand(Cards.SavageRoar);
         }
 
-        private int GetEnemyHealthAndArmor(Board board)
+        private bool HasDoubleForceOfNature(Board board)
         {
-            return board.HeroEnemy.CurrentHealth + board.HeroEnemy.CurrentArmor;
-        }
-
-
-        private int GetPlayableSpellSequenceDamages(Board board)
-        {
-            return GetSpellSequenceDamages(GetPlayableSpellSequence(board, CanPlaySimpleCombo(board)), board);
-        }
-
-        private int GetSecondTurnLethalRange(Board board)
-        {
-            return GetEnemyHealthAndArmor(board) - GetPotentialFaceDamages(board);
+            return board.Hand.Count(x => x.Template.Id == Cards.ForceofNature) >= 2;
         }
 
         private bool HasPotentialLethalNextTurn(Board board)
@@ -307,6 +290,22 @@ namespace SmartBotProfiles
                 }
             }
             return GetRemainingBlastDamagesAfterSequence(board) >= GetSecondTurnLethalRange(board);
+        }
+
+        private int GetEnemyHealthAndArmor(Board board)
+        {
+            return board.HeroEnemy.CurrentHealth + board.HeroEnemy.CurrentArmor;
+        }
+
+
+        private int GetPlayableSpellSequenceDamages(Board board)
+        {
+            return GetSpellSequenceDamages(GetPlayableSpellSequence(board, CanPlaySimpleCombo(board)), board);
+        }
+
+        private int GetSecondTurnLethalRange(Board board)
+        {
+            return GetEnemyHealthAndArmor(board) - GetPotentialFaceDamages(board);
         }
 
         public int GetPotentialAttackerCountNextTurn(Board board)
@@ -388,14 +387,16 @@ namespace SmartBotProfiles
                    board.Hand.FindAll(x => x.Template.Id == Cards.SavageRoar).Min(x => x.CurrentCost);
         }
 
-        private bool HasSimpleComboInHand(Board board)
+        private bool ShouldDrawCards(Board board)
         {
-            return board.HasCardInHand(Cards.ForceofNature) && board.HasCardInHand(Cards.SavageRoar);
-        }
+            if (HasAncientOfLoreInHand(board) && board.Hand.Count < 7) return true;
+            if (board.Hand.Count(x => x.Type == Card.CType.MINION) < 2 && board.ManaAvailable > 2 &&
+                board.Ability.Template.Id == LifeTap)
+            {
+                return true;
+            }
 
-        private bool HasDoubleForceOfNature(Board board)
-        {
-            return board.Hand.Count(x => x.Template.Id == Cards.ForceofNature) >= 2;
+            return false;
         }
     }
 }
