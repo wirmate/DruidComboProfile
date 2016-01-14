@@ -76,7 +76,6 @@ namespace SmartBotProfiles
             parameters.SpellsModifiers.AddOrUpdate(Cards.Swipe, new Modifier(75));
 
             //Silence specifics
-            parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(60));
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(30, Cards.TwilightDrake));
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(20, Cards.SludgeBelcher));
 
@@ -91,7 +90,7 @@ namespace SmartBotProfiles
 
             //Force of nature
             parameters.SpellsModifiers.AddOrUpdate(Cards.ForceofNature,
-                new Modifier(HasDoubleForceOfNature(board) ? 60 : 30));
+                new Modifier(HasDoubleForceOfNature(board) ? 60 : 130));
 
             //Wild growth end game
             if (board.MaxMana == 7 && HasSimpleComboInHand(board))
@@ -112,6 +111,7 @@ namespace SmartBotProfiles
             //If we cant put down enemy's life at topdeck lethal range
             if (HasPotentialLethalNextTurn(board))
             {
+                //Bot.Log("Detected potential lethal next turn !!!!");
                 parameters.GlobalAggroModifier = new Modifier(500);
 
                 if (board.Hand.Count(x => x.Template.Id == Cards.SavageRoar) == 1)
@@ -286,8 +286,10 @@ namespace SmartBotProfiles
             {
                 if (GetEnemyHealthAndArmor(board) - GetPotentialMinionAttackThisTurn(board) <=
                     14 + board.Hand.Count(x => x.Template.Id == Cards.ShadeofNaxxramas && x.IsStealth)*2 +
-                    GetPotentialAttackNextTurn(board) + GetPotentialAttackersCountNextTurn(board) * 2 + GetPlayableMinionsThisTurn(board) * 2)
+                    GetPotentialAttackNextTurn(board) + GetPotentialAttackersCountNextTurn(board)*2 +
+                    GetPlayableMinionsThisTurn(board)*2)
                 {
+                    Bot.Log("Detected potential lethal next turn, aggro, aggro, aggro !!!");
                     return true;
                 }
             }
@@ -426,8 +428,8 @@ namespace SmartBotProfiles
 
         private int GetPlayableMinionsThisTurn(Board board)
         {
-            int ret = 0;
-            int manaAvailable = board.ManaAvailable;
+            var ret = 0;
+            var manaAvailable = board.ManaAvailable;
 
             foreach (var card in board.Hand)
             {
