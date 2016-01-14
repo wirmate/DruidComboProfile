@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using SmartBot.Database;
 using SmartBot.Plugins.API;
 
 /* Explanation on profiles :
@@ -58,41 +57,71 @@ namespace SmartBotProfiles
             {Cards.LivingRoots, 2}
         };
 
-        private readonly List<Card.Cards> _tauntMinionsTable =
-            CardTemplate.TemplateList.ToList().FindAll(x => x.Value.Taunt).ToDictionary(x => x.Key).Keys.ToList();
-
         public ProfileParameters GetParameters(Board board)
         {
             //Init profile parameter based on rush profile
             var parameters = new ProfileParameters(BaseProfile.Default);
 
+            /* ------------------------------------------------------------------------------ */
+            /* ----------------------------   Global cards modifiers ------------------------- */
+            /* ------------------------------------------------------------------------------ */
+
+            //The coin
             parameters.SpellsModifiers.AddOrUpdate(Card.Cards.GAME_005, new Modifier(150));
+
+            //Innervate
             parameters.SpellsModifiers.AddOrUpdate(Cards.Innervate, new Modifier(180));
+
+            //Swipe
             parameters.SpellsModifiers.AddOrUpdate(Cards.Swipe, new Modifier(75));
+
+            //Silence specifics
             parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(60));
+            parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(30, Cards.TwilightDrake));
+            parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(20, Cards.SludgeBelcher));
+
+            //Dr.Boom
             parameters.MinionsModifiers.AddOrUpdate(Cards.DrBoom, new Modifier(-50));
 
-            if (HasSimpleComboInHand(board) || (board.HasCardInHand(Cards.ForceofNature) && board.Hand.Count > 4))
-            {
+            //Thaurissan
+            if (HasSimpleComboInHand(board) ||
+                board.HasCardInHand(Cards.ForceofNature) && board.Hand.Count > 4 &&
+                board.MinionEnemy.Sum(x => x.CurrentAtk) < 5)
                 parameters.MinionsModifiers.AddOrUpdate(Cards.EmperorThaurissan, new Modifier(-30));
-            }
 
-            if (HasDoubleForceOfNature(board))
-            {
-                parameters.SpellsModifiers.AddOrUpdate(Cards.ForceofNature, new Modifier(60));
-            }
-            else
-            {
-                parameters.SpellsModifiers.AddOrUpdate(Cards.ForceofNature, new Modifier(130));
-            }
+            //Force of nature
+            parameters.SpellsModifiers.AddOrUpdate(Cards.ForceofNature,
+                new Modifier(HasDoubleForceOfNature(board) ? 60 : 30));
+
+            if (board.MaxMana >= 10)
+                parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(1));
+
+            /* ------------------------------------------------------------------------------ */
+            /* ------------------------------------------------------------------------------ */
+
+
+            /* ------------------------------------------------------------------------------ */
+            /* ---------------------       Aggro modifiers       ---------------------------- */
+            /* ------------------------------------------------------------------------------ */
 
             parameters.GlobalAggroModifier = new Modifier(175);
 
             //If we cant put down enemy's life at topdeck lethal range
             if (HasPotentialLethalNextTurn(board))
             {
-                parameters.GlobalAggroModifier = new Modifier(250);
+                parameters.GlobalAggroModifier = new Modifier(300);
+
+                if (board.Hand.Count(x => x.Template.Id == Cards.SavageRoar) == 1)
+                    parameters.SpellsModifiers.AddOrUpdate(Cards.SavageRoar, new Modifier(150));
             }
+
+            /* ------------------------------------------------------------------------------ */
+            /* ------------------------------------------------------------------------------ */
+
+
+            /* ------------------------------------------------------------------------------ */
+            /* ---------------------        Draw modifiers       ---------------------------- */
+            /* ------------------------------------------------------------------------------ */
 
             if (ShouldDrawCards(board)) //If we need to draw cards
             {
@@ -103,6 +132,10 @@ namespace SmartBotProfiles
             {
                 parameters.GlobalDrawModifier = new Modifier(50);
             }
+
+            /* ------------------------------------------------------------------------------ */
+            /* ------------------------------------------------------------------------------ */
+
 
             //Turn specific handlers
             switch (board.TurnCount)
@@ -119,8 +152,6 @@ namespace SmartBotProfiles
                     HandleTurnThreeSpecifics(board, ref parameters);
                     break;
             }
-
-            OverrideSilenceSpellsValueOnTauntMinions(ref parameters);
 
             return parameters;
         }
@@ -152,11 +183,12 @@ namespace SmartBotProfiles
             if (HasCoin(board))
             {
                 //We choose to coin out darnassus over wild growth
-                if (HasDarnassus(board))
-                    parameters.MinionsModifiers.AddOrUpdate(Cards.DarnassusAspirant, new Modifier(-150));
+                if (HasDarnassus(board) && (HasWildGrowth(board) || board.HasCardInHand(Cards.ShadeofNaxxramas)) &&
+                    board.MinionEnemy.All(x => x.Template.Id != Cards.NorthshireCleric))
+                    parameters.MinionsModifiers.AddOrUpdate(Cards.DarnassusAspirant, new Modifier(-300));
 
-                if (HasWildGrowth(board) && !HasDarnassus(board))
-                    parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(-10));
+                if (HasWildGrowth(board) && !HasDarnassus(board) && board.HasCardInHand(Cards.ShadeofNaxxramas))
+                    parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(-300));
             }
         }
 
@@ -267,12 +299,21 @@ namespace SmartBotProfiles
 
             if (CanPlaySimpleComboNextTurn(board))
             {
-                if (GetEnemyHealthAndArmor(board) - GetPotentialMinionAttackThisTurn(board) <= 14)
+                if (GetEnemyHealthAndArmor(board) - GetPotentialMinionAttackThisTurn(board) <=
+                    14 + board.Hand.Count(x => x.Template.Id == Cards.ShadeofNaxxramas && x.IsStealth) +
+                    GetPotentialAttackerCountNextTurn(board)*4)
                 {
                     return true;
                 }
             }
             return GetRemainingBlastDamagesAfterSequence(board) >= GetSecondTurnLethalRange(board);
+        }
+
+        public int GetPotentialAttackerCountNextTurn(Board board)
+        {
+            return board.MinionFriend.Count > board.MinionEnemy.Count
+                ? board.MinionFriend.Count - board.MinionEnemy.Count
+                : 0;
         }
 
         private int GetPotentialMinionAttackThisTurn(Board board)
@@ -321,18 +362,6 @@ namespace SmartBotProfiles
             return
                 board.Hand.FindAll(x => _spellDamagesTable.ContainsKey(x.Template.Id))
                     .Sum(x => _spellDamagesTable[x.Template.Id] + board.GetSpellPower());
-        }
-
-
-        private void OverrideSilenceSpellsValueOnTauntMinions(ref ProfileParameters parameters)
-        {
-            foreach (var card in _tauntMinionsTable)
-            {
-                if (CardTemplate.LoadFromId(card).Cost >= 2)
-                {
-                    parameters.MinionsModifiers.AddOrUpdate(Cards.KeeperoftheGrove, new Modifier(20, card));
-                }
-            }
         }
 
         private bool CanPlaySimpleCombo(Board board)
