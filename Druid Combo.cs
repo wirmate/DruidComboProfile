@@ -82,6 +82,9 @@ namespace SmartBotProfiles
             //Dr.Boom
             parameters.MinionsModifiers.AddOrUpdate(Cards.DrBoom, new Modifier(-50));
 
+            //AzureDrake
+            parameters.MinionsModifiers.AddOrUpdate(Cards.AzureDrake, new Modifier(0));
+
             //Thaurissan
             if (HasSimpleComboInHand(board) ||
                 board.HasCardInHand(Cards.ForceofNature) && board.Hand.Count > 4 &&
