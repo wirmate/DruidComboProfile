@@ -94,7 +94,7 @@ namespace SmartBotProfiles
                 new Modifier(HasDoubleForceOfNature(board) ? 60 : 30));
 
             //Wild growth end game
-            if(board.MaxMana == 7 && HasSimpleComboInHand(board))
+            if (board.MaxMana == 7 && HasSimpleComboInHand(board))
                 parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(1));
             else if (board.MaxMana >= 10)
                 parameters.SpellsModifiers.AddOrUpdate(Cards.WildGrowth, new Modifier(1));
@@ -112,7 +112,7 @@ namespace SmartBotProfiles
             //If we cant put down enemy's life at topdeck lethal range
             if (HasPotentialLethalNextTurn(board))
             {
-                parameters.GlobalAggroModifier = new Modifier(300);
+                parameters.GlobalAggroModifier = new Modifier(500);
 
                 if (board.Hand.Count(x => x.Template.Id == Cards.SavageRoar) == 1)
                     parameters.SpellsModifiers.AddOrUpdate(Cards.SavageRoar, new Modifier(150));
@@ -285,8 +285,8 @@ namespace SmartBotProfiles
             if (CanPlaySimpleComboNextTurn(board))
             {
                 if (GetEnemyHealthAndArmor(board) - GetPotentialMinionAttackThisTurn(board) <=
-                    14 + board.Hand.Count(x => x.Template.Id == Cards.ShadeofNaxxramas && x.IsStealth) +
-                    GetPotentialAttackerCountNextTurn(board)*4)
+                    14 + board.Hand.Count(x => x.Template.Id == Cards.ShadeofNaxxramas && x.IsStealth)*2 +
+                    GetPotentialAttackNextTurn(board) + GetPotentialAttackersCountNextTurn(board) * 2 + GetPlayableMinionsThisTurn(board) * 2)
                 {
                     return true;
                 }
@@ -299,7 +299,6 @@ namespace SmartBotProfiles
             return board.HeroEnemy.CurrentHealth + board.HeroEnemy.CurrentArmor;
         }
 
-
         private int GetPlayableSpellSequenceDamages(Board board)
         {
             return GetSpellSequenceDamages(GetPlayableSpellSequence(board, CanPlaySimpleCombo(board)), board);
@@ -310,11 +309,35 @@ namespace SmartBotProfiles
             return GetEnemyHealthAndArmor(board) - GetPotentialFaceDamages(board);
         }
 
-        public int GetPotentialAttackerCountNextTurn(Board board)
+        private List<Card> GetPotentialAttackersNextTurn(Board board)
         {
-            return board.MinionFriend.Count > board.MinionEnemy.Count
-                ? board.MinionFriend.Count - board.MinionEnemy.Count
-                : 0;
+            var potentialAttackers = board.MinionFriend.ToList();
+            potentialAttackers.OrderByDescending(x => x.CurrentAtk);
+
+            foreach (var card in board.MinionEnemy)
+            {
+                foreach (var potentialAttacker in potentialAttackers)
+                {
+                    if (card.CurrentAtk >= potentialAttacker.CurrentHealth && potentialAttacker.IsDivineShield == false)
+                    {
+                        if (potentialAttacker.Template.Id != Cards.PilotedShredder)
+                            potentialAttackers.Remove(potentialAttacker);
+                        break;
+                    }
+                }
+            }
+
+            return potentialAttackers;
+        }
+
+        private int GetPotentialAttackNextTurn(Board board)
+        {
+            return GetPotentialAttackersNextTurn(board).Sum(x => x.CurrentAtk);
+        }
+
+        private int GetPotentialAttackersCountNextTurn(Board board)
+        {
+            return GetPotentialAttackersNextTurn(board).Count;
         }
 
         private int GetPotentialMinionAttackThisTurn(Board board)
@@ -399,6 +422,23 @@ namespace SmartBotProfiles
             }
 
             return false;
+        }
+
+        private int GetPlayableMinionsThisTurn(Board board)
+        {
+            int ret = 0;
+            int manaAvailable = board.ManaAvailable;
+
+            foreach (var card in board.Hand)
+            {
+                if (card.CurrentCost <= manaAvailable && card.Type == Card.CType.MINION)
+                {
+                    ret++;
+                    manaAvailable -= card.CurrentCost;
+                }
+            }
+
+            return ret;
         }
     }
 }
